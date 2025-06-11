@@ -32,9 +32,11 @@
 
       const pastYears = ['2022', '2023', '2024'];
       let combinedData = [];
+
       pastYears.forEach(year => {
         combinedData = combinedData.concat(data[year]);
       });
+
       combinedData.sort((a, b) => a.marks - b.marks);
 
       let lower = null, upper = null;
@@ -70,7 +72,7 @@
       output.innerHTML += `<ul><li><strong>Estimated GMR:</strong> <strong>${estimatedMin} – ${estimatedMax}</strong></li>`;
       output.innerHTML += `<li>Based on trends from 2022, 2023, and 2024</li></ul>`;
 
-      // Real data matches ±2
+      // Show real data matches ±2
       output.innerHTML += `<h2>📊 Real Data Matches (±2 Marks)</h2>`;
 
       for (const year of pastYears) {
@@ -83,7 +85,6 @@
           yearMatches.forEach(match => {
             const diff = marks - match.marks;
             let status = '';
-
             if (diff > 2) {
               status = `🟢 Higher than ${match.marks} marks (GMR ${match.gmr})`;
             } else if (diff < -2) {
