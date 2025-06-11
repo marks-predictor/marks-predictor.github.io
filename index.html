@@ -17,6 +17,14 @@
   </div>
 
   <script>
+    function median(arr) {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    }
+
     async function predictGMR() {
       const marks = parseFloat(document.getElementById('marks').value);
       const output = document.getElementById('output');
@@ -32,44 +40,25 @@
 
       const years = ['2022', '2023', '2024'];
       const allPoints = years.flatMap(year => data[year]);
-      allPoints.sort((a, b) => a.marks - b.marks);
+      const nearbyMatches = allPoints.filter(p => Math.abs(p.marks - marks) <= 10);
 
-      let lower = null, upper = null;
-      for (let i = 0; i < allPoints.length; i++) {
-        if (allPoints[i].marks <= marks) lower = allPoints[i];
-        if (allPoints[i].marks >= marks) {
-          upper = allPoints[i];
-          break;
-        }
-      }
+      // AI-like Prediction
+      const gmrs = nearbyMatches.map(p => p.gmr);
+      const aiMin = Math.min(...gmrs);
+      const aiMax = Math.max(...gmrs);
+      const aiMedian = Math.round(median(gmrs));
 
-      let estimatedMin = null, estimatedMax = null;
-      if (lower && upper && lower.marks !== upper.marks) {
-        const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
-        const est = lower.gmr + slope * (marks - lower.marks);
-        const buffer = Math.max(10, Math.abs(upper.gmr - lower.gmr) * 0.15);
-        estimatedMin = Math.max(1, Math.round(est - buffer));
-        estimatedMax = Math.round(est + buffer);
-      } else if (lower) {
-        const buffer = Math.max(30, lower.gmr * 0.08);
-        estimatedMin = Math.max(1, Math.round(lower.gmr - buffer));
-        estimatedMax = Math.round(lower.gmr + buffer);
-      } else if (upper) {
-        const buffer = Math.max(30, upper.gmr * 0.08);
-        estimatedMin = Math.max(1, Math.round(upper.gmr - buffer));
-        estimatedMax = Math.round(upper.gmr + buffer);
-      }
-
-      // 🔮 AI Prediction for 2025
       output.innerHTML += `<h2>🔮 AI Estimated GMR for 2025</h2>`;
       output.innerHTML += `
         <ul>
-          <li><strong>Estimated GMR:</strong> ${estimatedMin} – ${estimatedMax}</li>
-          <li>Based on patterns from 2022, 2023, and 2024</li>
+          <li><strong>Estimated GMR:</strong> ${aiMin} – ${aiMax}</li>
+          <li><strong>AI Median Estimate:</strong> ~ ${aiMedian}</li>
+          <li>Based on real pattern from 2022–2024 (±10 marks)</li>
         </ul>`;
 
-      // 📊 Actual Data from all years (±10 marks)
+      // Real Data for Each Year
       output.innerHTML += `<h2>📊 Matching Data (±10 Marks) Per Year</h2>`;
+
       years.forEach(year => {
         const matches = data[year]
           .filter(p => Math.abs(p.marks - marks) <= 10)
@@ -78,7 +67,6 @@
         if (matches.length > 0) {
           const gmrMin = Math.min(...matches.map(m => m.gmr));
           const gmrMax = Math.max(...matches.map(m => m.gmr));
-
           output.innerHTML += `<div class="year-block"><h3>🔹 ${year} (GMR Range: ${gmrMin} – ${gmrMax})</h3><ul>`;
           matches.forEach(match => {
             const diff = marks - match.marks;
