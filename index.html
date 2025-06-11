@@ -5,99 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WBJEE GMR Predictor</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<script>
-  async function predictGMR() {
-    const marks = parseFloat(document.getElementById('marks').value);
-    const output = document.getElementById('output');
-    output.innerHTML = '';
-
-    if (isNaN(marks) || marks < 0 || marks > 200) {
-      output.innerHTML = '<p style="color: red;">Enter valid marks between 0 and 200.</p>';
-      return;
-    }
-
-    const res = await fetch('data/gmr_data.json');
-    const data = await res.json();
-
-    const predictions = [];
-    const actualMatchRanks = [];
-
-    for (const year of Object.keys(data)) {
-      const points = data[year].slice().sort((a, b) => a.marks - b.marks);
-
-      let lower = null, upper = null;
-
-      for (let i = 0; i < points.length; i++) {
-        if (points[i].marks <= marks) lower = points[i];
-        if (points[i].marks >= marks) {
-          upper = points[i];
-          break;
-        }
-      }
-
-      let estimatedMin = null, estimatedMax = null;
-
-      if (lower && upper && lower.marks !== upper.marks) {
-        const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
-        const est = lower.gmr + slope * (marks - lower.marks);
-        const buffer = Math.max(10, Math.abs(upper.gmr - lower.gmr) * 0.15);
-        estimatedMin = Math.max(1, Math.round(est - buffer));
-        estimatedMax = Math.round(est + buffer);
-      } else if (lower) {
-        const buffer = Math.max(30, lower.gmr * 0.08);
-        estimatedMin = Math.max(1, Math.round(lower.gmr - buffer));
-        estimatedMax = Math.round(lower.gmr + buffer);
-      } else if (upper) {
-        const buffer = Math.max(30, upper.gmr * 0.08);
-        estimatedMin = Math.max(1, Math.round(upper.gmr - buffer));
-        estimatedMax = Math.round(upper.gmr + buffer);
-      }
-
-      // Find actual data near predicted rank range (±3)
-      const closestRanks = data[year]
-        .filter(p => p.gmr >= estimatedMin - 3 && p.gmr <= estimatedMax + 3)
-        .sort((a, b) => Math.abs((estimatedMin + estimatedMax) / 2 - a.gmr));
-
-      const nearest = closestRanks.length ? closestRanks[0] : null;
-
-      predictions.push({ year, min: estimatedMin, max: estimatedMax });
-      if (nearest) actualMatchRanks.push({ year, gmr: nearest.gmr, marks: nearest.marks });
-    }
-
-    // Show AI estimation
-    output.innerHTML += `<h2>🔍 AI Estimated GMR</h2><ul>`;
-    predictions.forEach(p => {
-      output.innerHTML += `<li><strong>${p.year}</strong>: GMR ~ <strong>${p.min} – ${p.max}</strong></li>`;
-    });
-    output.innerHTML += '</ul>';
-
-    // Show actual past marks for same rank range
-    output.innerHTML += `<h2>📈 Actual Marks for Similar Ranks</h2><ul>`;
-    actualMatchRanks.forEach(p => {
-      const diff = marks - p.marks;
-      const status =
-        diff > 2
-          ? `🟢 Higher than GMR ${p.gmr} in ${p.year} by ${diff.toFixed(2)} marks`
-          : diff < -2
-          ? `🔴 Lower than GMR ${p.gmr} in ${p.year} by ${Math.abs(diff).toFixed(2)} marks`
-          : `🟡 Almost equal to GMR ${p.gmr} in ${p.year}`;
-      output.innerHTML += `<li><strong>${p.year}</strong>: GMR ${p.gmr} → ${p.marks} marks → ${status}</li>`;
-    });
-    output.innerHTML += `</ul>`;
-  }
-</script>
 
 <body>
   <div class="container">
-    <h1>📊 WBJEE GMR Predictor (AI-based)</h1>
+    <h1>📊 WBJEE GMR Predictor</h1>
     <p>Enter your total marks (out of 200):</p>
     <input type="number" id="marks" placeholder="e.g., 123" />
     <button onclick="predictGMR()">Predict GMR</button>
     <div id="output"></div>
-    <canvas id="gmrChart" width="400" height="200"></canvas>
   </div>
 
+  <script>
+    async function predictGMR() {
+      const marks = parseFloat(document.getElementById('marks').value);
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+
+      if (isNaN(marks) || marks < 0 || marks > 200) {
+        output.innerHTML = '<p style="color: red;">Enter valid marks between 0 and 200.</p>';
+        return;
+      }
+
+      const res = await fetch('data/gmr_data.json');
+      const data = await res.json();
+
+      const predictions = [];
+      const actualMatchRanks = [];
+
+      for (const year of Object.keys(data)) {
+        const points = data[year].slice().sort((a, b) => a.marks - b.marks);
+
+        let lower = null, upper = null;
+
+        for (let i = 0; i < points.length; i++) {
+          if (points[i].marks <= marks) lower = points[i];
+          if (points[i].marks >= marks) {
+            upper = points[i];
+            break;
+          }
+        }
+
+        let estimatedMin = null, estimatedMax = null;
+
+        if (lower && upper && lower.marks !== upper.marks) {
+          const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
+          const est = lower.gmr + slope * (marks - lower.marks);
+          const buffer = Math.max(10, Math.abs(upper.gmr - lower.gmr) * 0.15);
+          estimatedMin = Math.max(1, Math.round(est - buffer));
+          estimatedMax = Math.round(est + buffer);
+        } else if (lower) {
+          const buffer = Math.max(30, lower.gmr * 0.08);
+          estimatedMin = Math.max(1, Math.round(lower.gmr - buffer));
+          estimatedMax = Math.round(lower.gmr + buffer);
+        } else if (upper) {
+          const buffer = Math.max(30, upper.gmr * 0.08);
+          estimatedMin = Math.max(1, Math.round(upper.gmr - buffer));
+          estimatedMax = Math.round(upper.gmr + buffer);
+        }
+
+        // Find actual data near predicted rank range (±3)
+        const closestRanks = data[year]
+          .filter(p => p.gmr >= estimatedMin - 3 && p.gmr <= estimatedMax + 3)
+          .sort((a, b) => Math.abs((estimatedMin + estimatedMax) / 2 - a.gmr));
+
+        const nearest = closestRanks.length ? closestRanks[0] : null;
+
+        predictions.push({ year, min: estimatedMin, max: estimatedMax });
+        if (nearest) actualMatchRanks.push({ year, gmr: nearest.gmr, marks: nearest.marks });
+      }
+
+      // Show AI estimation
+      output.innerHTML += `<h2>🔍 AI Estimated GMR</h2><ul>`;
+      predictions.forEach(p => {
+        output.innerHTML += `<li><strong>${p.year}</strong>: GMR ~ <strong>${p.min} – ${p.max}</strong></li>`;
+      });
+      output.innerHTML += '</ul>';
+
+      // Show actual past marks for same rank range
+      output.innerHTML += `<h2>📈 Actual Marks for Similar Ranks</h2><ul>`;
+      actualMatchRanks.forEach(p => {
+        const diff = marks - p.marks;
+        const status =
+          diff > 2
+            ? `🟢 Higher than GMR ${p.gmr} in ${p.year} by ${diff.toFixed(2)} marks`
+            : diff < -2
+            ? `🔴 Lower than GMR ${p.gmr} in ${p.year} by ${Math.abs(diff).toFixed(2)} marks`
+            : `🟡 Almost equal to GMR ${p.gmr} in ${p.year}`;
+        output.innerHTML += `<li><strong>${p.year}</strong>: GMR ${p.gmr} → ${p.marks} marks → ${status}</li>`;
+      });
+      output.innerHTML += `</ul>`;
+    }
+  </script>
 </body>
 </html>
