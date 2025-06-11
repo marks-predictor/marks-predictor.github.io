@@ -30,27 +30,20 @@
       const res = await fetch('data/gmr_data.json');
       const data = await res.json();
 
-      const pastYears = ['2022', '2023', '2024'];
-      let combinedData = [];
-
-      pastYears.forEach(year => {
-        combinedData = combinedData.concat(data[year]);
-      });
-
-      combinedData.sort((a, b) => a.marks - b.marks);
+      const years = ['2022', '2023', '2024'];
+      const allPoints = years.flatMap(year => data[year]);
+      allPoints.sort((a, b) => a.marks - b.marks);
 
       let lower = null, upper = null;
-
-      for (let i = 0; i < combinedData.length; i++) {
-        if (combinedData[i].marks <= marks) lower = combinedData[i];
-        if (combinedData[i].marks >= marks) {
-          upper = combinedData[i];
+      for (let i = 0; i < allPoints.length; i++) {
+        if (allPoints[i].marks <= marks) lower = allPoints[i];
+        if (allPoints[i].marks >= marks) {
+          upper = allPoints[i];
           break;
         }
       }
 
       let estimatedMin = null, estimatedMax = null;
-
       if (lower && upper && lower.marks !== upper.marks) {
         const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
         const est = lower.gmr + slope * (marks - lower.marks);
@@ -67,22 +60,27 @@
         estimatedMax = Math.round(upper.gmr + buffer);
       }
 
-      // Show AI prediction for 2025
+      // 🔮 AI Prediction for 2025
       output.innerHTML += `<h2>🔮 AI Estimated GMR for 2025</h2>`;
-      output.innerHTML += `<ul><li><strong>Estimated GMR:</strong> <strong>${estimatedMin} – ${estimatedMax}</strong></li>`;
-      output.innerHTML += `<li>Based on trends from 2022, 2023, and 2024</li></ul>`;
+      output.innerHTML += `
+        <ul>
+          <li><strong>Estimated GMR:</strong> ${estimatedMin} – ${estimatedMax}</li>
+          <li>Based on patterns from 2022, 2023, and 2024</li>
+        </ul>`;
 
-      // Show real data matches ±2
-      output.innerHTML += `<h2>📊 Real Data Matches (±2 Marks)</h2>`;
-
-      for (const year of pastYears) {
-        const yearMatches = data[year]
-          .filter(entry => Math.abs(entry.marks - marks) <= 2)
+      // 📊 Actual Data from all years (±10 marks)
+      output.innerHTML += `<h2>📊 Matching Data (±10 Marks) Per Year</h2>`;
+      years.forEach(year => {
+        const matches = data[year]
+          .filter(p => Math.abs(p.marks - marks) <= 10)
           .sort((a, b) => a.marks - b.marks);
 
-        if (yearMatches.length > 0) {
-          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><ul>`;
-          yearMatches.forEach(match => {
+        if (matches.length > 0) {
+          const gmrMin = Math.min(...matches.map(m => m.gmr));
+          const gmrMax = Math.max(...matches.map(m => m.gmr));
+
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year} (GMR Range: ${gmrMin} – ${gmrMax})</h3><ul>`;
+          matches.forEach(match => {
             const diff = marks - match.marks;
             let status = '';
             if (diff > 2) {
@@ -92,19 +90,17 @@
             } else {
               status = `🟡 Very close to ${match.marks} marks (GMR ${match.gmr})`;
             }
-
             output.innerHTML += `
               <li>
                 <strong>Marks:</strong> ${match.marks} → <strong>GMR:</strong> ${match.gmr}<br/>
                 <span class="status">${status}</span>
-              </li>
-            `;
+              </li>`;
           });
           output.innerHTML += `</ul></div>`;
         } else {
-          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found near ${marks} marks in this year.</p></div>`;
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found within ±10 marks of ${marks}</p></div>`;
         }
-      }
+      });
     }
   </script>
 </body>
