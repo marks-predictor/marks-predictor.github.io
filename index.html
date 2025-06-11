@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WBJEE Rank Prediction Tool</title>
+  <title>WBJEE GMR Predictor</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 40px;
-      background: #f0f0f0;
+      background: #f7f7f7;
     }
     input, button {
       padding: 10px;
@@ -15,8 +15,8 @@
     }
     #trend {
       margin-top: 30px;
-      padding: 15px;
-      background: #ffffff;
+      padding: 20px;
+      background: #fff;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
@@ -29,16 +29,12 @@
     ul {
       padding-left: 20px;
     }
-    li {
-      line-height: 1.6;
-    }
   </style>
 </head>
 <body>
 
-  <h1>WBJEE GMR Lookup by Marks</h1>
-  <p>Enter your WBJEE total marks to view matching GMRs from previous years:</p>
-
+  <h1>WBJEE GMR Lookup</h1>
+  <p>Enter your total marks (out of 200):</p>
   <input type="number" id="marks" placeholder="e.g., 123" />
   <button onclick="showTrend()">Check</button>
 
@@ -77,22 +73,44 @@
         return;
       }
 
-      trendDiv.innerHTML = "<h2>📊 GMRs near your marks (±2)</h2>";
+      trendDiv.innerHTML = "<h2>📊 Previous Year GMRs (based on data)</h2>";
 
       for (let year of ["2024", "2023", "2022"]) {
         const yearData = data[year];
-        const matches = Object.entries(yearData).filter(([m]) => Math.abs(parseFloat(m) - marks) <= 2)
-          .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+        const entries = Object.entries(yearData).map(([m, r]) => [parseFloat(m), r]).sort((a, b) => a[0] - b[0]);
 
-        if (matches.length > 0) {
-          trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3><ul>`;
-          matches.forEach(([m, r]) => {
+        // 1. Try to find direct matches ±2
+        const closeMatches = entries.filter(([m]) => Math.abs(m - marks) <= 2);
+
+        trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3>`;
+
+        if (closeMatches.length > 0) {
+          trendDiv.innerHTML += `<ul>`;
+          closeMatches.forEach(([m, r]) => {
             trendDiv.innerHTML += `<li>Marks: ${m} → GMR: ${r}</li>`;
           });
-          trendDiv.innerHTML += "</ul></div>";
+          trendDiv.innerHTML += `</ul>`;
         } else {
-          trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3><p>No data found within ±2 marks.</p></div>`;
+          // 2. No direct match — find nearest lower and higher
+          let lower = null, higher = null;
+          for (let i = 0; i < entries.length; i++) {
+            if (entries[i][0] < marks) lower = entries[i];
+            if (entries[i][0] > marks) {
+              higher = entries[i];
+              break;
+            }
+          }
+
+          if (lower && higher) {
+            trendDiv.innerHTML += `<p>No exact data in ±2 range. Estimated GMR lies between:</p>`;
+            trendDiv.innerHTML += `<p><strong>Marks ${lower[0]} (GMR: ${lower[1]})</strong> and <strong>Marks ${higher[0]} (GMR: ${higher[1]})</strong></p>`;
+            trendDiv.innerHTML += `<p>➡️ Estimated GMR Range: <strong>${Math.min(lower[1], higher[1])} – ${Math.max(lower[1], higher[1])}</strong></p>`;
+          } else {
+            trendDiv.innerHTML += `<p>No data available to estimate GMR near this mark.</p>`;
+          }
         }
+
+        trendDiv.innerHTML += `</div>`;
       }
     }
   </script>
