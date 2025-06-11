@@ -32,11 +32,9 @@
 
       const pastYears = ['2022', '2023', '2024'];
       let combinedData = [];
-
       pastYears.forEach(year => {
         combinedData = combinedData.concat(data[year]);
       });
-
       combinedData.sort((a, b) => a.marks - b.marks);
 
       let lower = null, upper = null;
@@ -67,30 +65,43 @@
         estimatedMax = Math.round(upper.gmr + buffer);
       }
 
-      // ✅ Show AI prediction for 2025
+      // Show AI prediction for 2025
       output.innerHTML += `<h2>🔮 AI Estimated GMR for 2025</h2>`;
       output.innerHTML += `<ul><li><strong>Estimated GMR:</strong> <strong>${estimatedMin} – ${estimatedMax}</strong></li>`;
       output.innerHTML += `<li>Based on trends from 2022, 2023, and 2024</li></ul>`;
 
-      // 📊 Show actual past years' marks within ±2 marks
+      // Real data matches ±2
       output.innerHTML += `<h2>📊 Real Data Matches (±2 Marks)</h2>`;
 
       for (const year of pastYears) {
-        const matches = data[year]
-          .filter(p => Math.abs(p.marks - marks) <= 2)
+        const yearMatches = data[year]
+          .filter(entry => Math.abs(entry.marks - marks) <= 2)
           .sort((a, b) => a.marks - b.marks);
 
-        if (matches.length > 0) {
-          output.innerHTML += `<div class="year-block"><p><strong>🔹 ${year}</strong></p><ul>`;
-          matches.forEach(p => {
-            const diff = marks - p.marks;
-            const status =
-              diff > 2 ? `🟢 Higher than ${p.marks} marks (GMR ${p.gmr})`
-              : diff < -2 ? `🔴 Lower than ${p.marks} marks (GMR ${p.gmr})`
-              : `🟡 Very close to ${p.marks} marks (GMR ${p.gmr})`;
-            output.innerHTML += `<li>Marks: ${p.marks} → GMR: ${p.gmr}<br>${status}</li>`;
+        if (yearMatches.length > 0) {
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><ul>`;
+          yearMatches.forEach(match => {
+            const diff = marks - match.marks;
+            let status = '';
+
+            if (diff > 2) {
+              status = `🟢 Higher than ${match.marks} marks (GMR ${match.gmr})`;
+            } else if (diff < -2) {
+              status = `🔴 Lower than ${match.marks} marks (GMR ${match.gmr})`;
+            } else {
+              status = `🟡 Very close to ${match.marks} marks (GMR ${match.gmr})`;
+            }
+
+            output.innerHTML += `
+              <li>
+                <strong>Marks:</strong> ${match.marks} → <strong>GMR:</strong> ${match.gmr}<br/>
+                <span class="status">${status}</span>
+              </li>
+            `;
           });
           output.innerHTML += `</ul></div>`;
+        } else {
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found near ${marks} marks in this year.</p></div>`;
         }
       }
     }
