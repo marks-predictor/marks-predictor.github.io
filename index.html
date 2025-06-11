@@ -25,6 +25,14 @@
         : sorted[mid];
     }
 
+    function percentile(arr, p) {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const i = (sorted.length - 1) * p;
+      const low = Math.floor(i);
+      const high = Math.ceil(i);
+      return sorted[low] + (sorted[high] - sorted[low]) * (i - low);
+    }
+
     async function predictGMR() {
       const marks = parseFloat(document.getElementById('marks').value);
       const output = document.getElementById('output');
@@ -55,22 +63,23 @@
         allMatches.push(...matches);
       }
 
-      // AI Estimate from all matches
+      // AI estimate from all best matches
       const gmrs = allMatches.map(p => p.gmr);
-      const aiMin = Math.min(...gmrs);
-      const aiMaxRaw = Math.max(...gmrs);
-      const aiMax = Math.ceil(aiMaxRaw / 100) * 100;
       const aiMedian = Math.round(median(gmrs));
+      const aiQ3 = Math.round(percentile(gmrs, 0.75));
+
+      const aiPredLow = Math.floor((aiQ3 - 50) / 100) * 100;
+      const aiPredHigh = Math.ceil((aiQ3 + 100) / 100) * 100;
 
       output.innerHTML += `<h2>🔮Estimated GMR for 2025</h2>`;
       output.innerHTML += `
         <ul>
-          <li><strong>Predicted Rank:</strong> ${aiMin} – ${aiMax}</li>
-          <li><strong>Median Estimate:</strong> ~ ${aiMedian}</li>
-          <li>Based on best matches from 2022, 2023, and 2024 (±2→5→10)</li>
+          <li><strong>Predicted GMR (Safe Estimate):</strong> ${aiPredLow} – ${aiPredHigh}</li>
+          <li><strong>Median from Real Data:</strong> ~ ${aiMedian}</li>
+          <li>Range centered around Q3 (75th percentile of real data)</li>
         </ul>`;
 
-      // Show year-wise matches
+      // Show per-year data
       output.innerHTML += `<h2>📊 Real Data Matches (Best Available Range per Year)</h2>`;
 
       for (const year of years) {
@@ -97,7 +106,7 @@
           });
           output.innerHTML += `</ul></div>`;
         } else {
-          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found for marks near ${marks}</p></div>`;
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found near ${marks}</p></div>`;
         }
       }
     }
