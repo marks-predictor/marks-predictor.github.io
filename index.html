@@ -17,89 +17,96 @@
     <canvas id="gmrChart" width="400" height="200"></canvas>
   </div>
 
-  <script>
-    async function predictGMR() {
-      const marks = parseFloat(document.getElementById('marks').value);
-      const output = document.getElementById('output');
-      const chartCanvas = document.getElementById('gmrChart');
-      output.innerHTML = '';
-      if (window.gmrChartInstance) window.gmrChartInstance.destroy();
+<script>
+  async function predictGMR() {
+    const marks = parseFloat(document.getElementById('marks').value);
+    const output = document.getElementById('output');
+    const chartCanvas = document.getElementById('gmrChart');
+    output.innerHTML = '';
+    if (window.gmrChartInstance) window.gmrChartInstance.destroy();
 
-      if (isNaN(marks) || marks < 0 || marks > 200) {
-        output.innerHTML = '<p style="color: red;">Enter valid marks between 0 and 200.</p>';
-        return;
-      }
+    if (isNaN(marks) || marks < 0 || marks > 200) {
+      output.innerHTML = '<p style="color: red;">Enter valid marks between 0 and 200.</p>';
+      return;
+    }
 
-      const res = await fetch('data/gmr_data.json');
-      const data = await res.json();
+    const res = await fetch('data/gmr_data.json');
+    const data = await res.json();
 
-      let predictions = [];
-      let chartLabels = [];
-      let chartData = [];
+    let predictions = [];
+    let chartLabels = [];
+    let chartData = [];
 
-      for (const year of Object.keys(data)) {
-        const points = data[year];
-        const sorted = points.sort((a, b) => a.marks - b.marks);
-        let lower = null, upper = null;
+    for (const year of Object.keys(data)) {
+      const points = data[year];
+      const sorted = points.slice().sort((a, b) => a.marks - b.marks);
 
-        for (let i = 0; i < sorted.length; i++) {
-          if (sorted[i].marks < marks) lower = sorted[i];
-          if (sorted[i].marks >= marks) {
-            upper = sorted[i];
-            break;
-          }
-        }
-
-        let predicted;
-        if (lower && upper && lower.marks !== upper.marks) {
-          const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
-          predicted = lower.gmr + slope * (marks - lower.marks);
-        } else if (lower) {
-          predicted = lower.gmr;
-        } else if (upper) {
-          predicted = upper.gmr;
-        } else {
-          predicted = 'Unavailable';
-        }
-
-        if (typeof predicted === 'number') {
-          predictions.push({ year, gmr: Math.round(predicted) });
-          chartLabels.push(year);
-          chartData.push(Math.round(predicted));
+      let lower = null, upper = null;
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].marks < marks) lower = sorted[i];
+        if (sorted[i].marks >= marks) {
+          upper = sorted[i];
+          break;
         }
       }
 
-      if (predictions.length > 0) {
-        output.innerHTML += `<h2>🔍 AI Estimated GMR:</h2><ul>`;
-        predictions.forEach(p => {
-          output.innerHTML += `<li><strong>${p.year}</strong>: GMR ~ <strong>${p.gmr}</strong></li>`;
-        });
-        output.innerHTML += '</ul>';
+      let estimatedMin = null, estimatedMax = null;
 
-        window.gmrChartInstance = new Chart(chartCanvas, {
-          type: 'line',
-          data: {
-            labels: chartLabels,
-            datasets: [{
-              label: 'Estimated GMR',
-              data: chartData,
-              fill: false,
-              borderColor: '#0077cc',
-              tension: 0.1
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: false, reverse: true },
-              x: { title: { display: true, text: 'Year' } }
-            }
-          }
-        });
-      } else {
-        output.innerHTML = `<p>No prediction available for this mark.</p>`;
+      if (lower && upper && lower.marks !== upper.marks) {
+        // Linear interpolation
+        const slope = (upper.gmr - lower.gmr) / (upper.marks - lower.marks);
+        const estimate = lower.gmr + slope * (marks - lower.marks);
+        const buffer = Math.max(20, Math.abs(upper.gmr - lower.gmr) * 0.1);
+        estimatedMin = Math.round(Math.max(1, estimate - buffer));
+        estimatedMax = Math.round(estimate + buffer);
+      } else if (lower) {
+        const buffer = Math.max(50, lower.gmr * 0.05);
+        estimatedMin = Math.round(Math.max(1, lower.gmr - buffer));
+        estimatedMax = Math.round(lower.gmr + buffer);
+      } else if (upper) {
+        const buffer = Math.max(50, upper.gmr * 0.05);
+        estimatedMin = Math.round(Math.max(1, upper.gmr - buffer));
+        estimatedMax = Math.round(upper.gmr + buffer);
+      }
+
+      if (estimatedMin !== null && estimatedMax !== null) {
+        predictions.push({ year, min: estimatedMin, max: estimatedMax });
+        chartLabels.push(year);
+        chartData.push((estimatedMin + estimatedMax) / 2);
       }
     }
-  </script>
+
+    // Display output
+    output.innerHTML += `<h2>🔍 AI Estimated GMR Ranges</h2><ul>`;
+    predictions.forEach(p => {
+      output.innerHTML += `<li><strong>${p.year}</strong>: GMR ~ <strong>${p.min} – ${p.max}</strong></li>`;
+    });
+    output.innerHTML += '</ul>';
+
+    // Chart
+    window.gmrChartInstance = new Chart(chartCanvas, {
+      type: 'line',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Estimated GMR Midpoint',
+          data: chartData,
+          fill: false,
+          borderColor: '#0077cc',
+          backgroundColor: '#0077cc',
+          tension: 0.2
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: false, reverse: true, title: { display: true, text: 'GMR' } },
+          x: { title: { display: true, text: 'Year' } }
+        }
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
