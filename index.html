@@ -1,44 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>WBJEE GMR Predictor</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f1f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 60px;
+      min-height: 100vh;
     }
-    input, button {
-      padding: 10px;
-      font-size: 1em;
+
+    .container {
+      width: 90%;
+      max-width: 600px;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      color: #333;
+      text-align: center;
+    }
+
+    p {
+      color: #555;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #0077cc;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
     #trend {
       margin-top: 30px;
-      padding: 20px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    h1, h2, h3 {
+
+    .year-section {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+    }
+
+    .year-section h3 {
+      margin-top: 0;
+      color: #005fa3;
+    }
+
+    ul {
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      line-height: 1.6;
       color: #333;
     }
-    .year-section {
-      margin-top: 20px;
+
+    .range {
+      font-weight: bold;
+      color: #007700;
     }
-    ul {
-      padding-left: 20px;
+
+    .warning {
+      color: #cc0000;
+    }
+
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <h1>WBJEE GMR Predictor</h1>
-  <p>Enter your total marks (out of 200):</p>
-  <input type="number" id="marks" placeholder="e.g., 123" />
-  <button onclick="showTrend()">Check</button>
+  <div class="container">
+    <h1>WBJEE GMR Predictor</h1>
+    <p>Enter your total marks (out of 200):</p>
+    <input type="number" id="marks" placeholder="e.g., 127" />
+    <button onclick="showTrend()">Check</button>
 
-  <div id="trend"></div>
+    <div id="trend"></div>
+  </div>
 
   <script>
     const data = {
@@ -69,29 +149,26 @@
       trendDiv.innerHTML = "";
 
       if (isNaN(marks) || marks < 0 || marks > 200) {
-        trendDiv.innerHTML = "<p>Please enter valid marks between 0 and 200.</p>";
+        trendDiv.innerHTML = "<p class='warning'>⚠️ Please enter valid marks between 0 and 200.</p>";
         return;
       }
 
-      trendDiv.innerHTML = "<h2>📊 Previous Year GMRs (based on data)</h2>";
+      trendDiv.innerHTML = `<h2>📊 Results for Marks: ${marks}</h2>`;
 
       for (let year of ["2024", "2023", "2022"]) {
         const yearData = data[year];
         const entries = Object.entries(yearData).map(([m, r]) => [parseFloat(m), r]).sort((a, b) => a[0] - b[0]);
 
-        // 1. Try to find direct matches ±2
-        const closeMatches = entries.filter(([m]) => Math.abs(m - marks) <= 2);
+        const close = entries.filter(([m]) => Math.abs(m - marks) <= 2);
+        trendDiv.innerHTML += `<div class="year-section"><h3>${year}</h3>`;
 
-        trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3>`;
-
-        if (closeMatches.length > 0) {
-          trendDiv.innerHTML += `<ul>`;
-          closeMatches.forEach(([m, r]) => {
-            trendDiv.innerHTML += `<li>Marks: ${m} → GMR: ${r}</li>`;
+        if (close.length > 0) {
+          trendDiv.innerHTML += "<ul>";
+          close.forEach(([m, r]) => {
+            trendDiv.innerHTML += `<li>Marks: <strong>${m}</strong> → GMR: <strong>${r}</strong></li>`;
           });
-          trendDiv.innerHTML += `</ul>`;
+          trendDiv.innerHTML += "</ul>";
         } else {
-          // 2. No direct match — find nearest lower and higher
           let lower = null, higher = null;
           for (let i = 0; i < entries.length; i++) {
             if (entries[i][0] < marks) lower = entries[i];
@@ -100,17 +177,16 @@
               break;
             }
           }
-
           if (lower && higher) {
-            trendDiv.innerHTML += `<p>No exact data in ±2 range. Estimated GMR lies between:</p>`;
-            trendDiv.innerHTML += `<p><strong>Marks ${lower[0]} (GMR: ${lower[1]})</strong> and <strong>Marks ${higher[0]} (GMR: ${higher[1]})</strong></p>`;
-            trendDiv.innerHTML += `<p>➡️ Estimated GMR Range: <strong>${Math.min(lower[1], higher[1])} – ${Math.max(lower[1], higher[1])}</strong></p>`;
+            const range = `<span class="range">${Math.min(lower[1], higher[1])} – ${Math.max(lower[1], higher[1])}</span>`;
+            trendDiv.innerHTML += `<p>🔍 No exact data in ±2 marks. Estimated GMR range: ${range}</p>`;
+            trendDiv.innerHTML += `<p>From Marks ${lower[0]} (GMR: ${lower[1]}) and ${higher[0]} (GMR: ${higher[1]})</p>`;
           } else {
-            trendDiv.innerHTML += `<p>No data available to estimate GMR near this mark.</p>`;
+            trendDiv.innerHTML += `<p class='warning'>⚠️ No data available near these marks.</p>`;
           }
         }
 
-        trendDiv.innerHTML += `</div>`;
+        trendDiv.innerHTML += "</div>";
       }
     }
   </script>
