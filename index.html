@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WBJEE GMR Lookup Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f0f0f0;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1em;
+    }
+    #trend {
+      margin-top: 30px;
+      padding: 15px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .year-section {
+      margin-top: 20px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>WBJEE GMR Lookup by Marks</h1>
+  <p>Enter your WBJEE total marks to view matching GMRs from previous years:</p>
+
+  <input type="number" id="marks" placeholder="e.g., 123" />
+  <button onclick="showTrend()">Check</button>
+
+  <div id="trend"></div>
+
+  <script>
+    const data = {
+      "2024": {
+        185.25: 1, 130.333: 96, 120.417: 176, 107.333: 354, 91.833: 746, 86.083: 1027, 82.167: 1307,
+        77.667: 1748, 71.417: 2590, 67.333: 3371, 64.333: 4080, 60.333: 5251, 56.833: 6708,
+        53.75: 8366, 51.667: 9642, 49.583: 11226, 47.083: 13455, 45.25: 15408, 43.5: 17655,
+        40.583: 22073, 38.25: 26555, 35.5: 33040, 32.917: 40594, 30.0: 50645, 25.0: 70414,
+        20.667: 87340, 9.0: 109917
+      },
+      "2023": {
+        130.333: 96, 107.333: 354, 96.417: 580, 86.083: 1027, 70.417: 1571, 63.833: 2281,
+        61.833: 2598, 60.667: 2808, 59.5: 3025, 56.25: 3757, 53.75: 4521, 47.333: 7299,
+        45.25: 8604, 41.833: 11544, 39.25: 14302, 36.667: 18005, 34.083: 22637, 31.167: 29402,
+        29.333: 34306, 27.167: 40920, 24.417: 50157, 21.667: 60127, 19.417: 68502,
+        16.833: 77096, 15.0: 82413, 12.5: 88113, 9.0: 92824
+      },
+      "2022": {
+        117.917: 205, 103.917: 417, 94.417: 633, 89.167: 802, 79.917: 1192, 75.417: 1499,
+        68.667: 2093, 65.083: 2509, 59.583: 3325, 52.333: 4924, 17.083: 60972,
+        14.75: 67221, 12.333: 72483, 9.417: 76627, 6.5: 78858, 3.5: 79803
+      }
+    };
+
+    function showTrend() {
+      const marks = parseFloat(document.getElementById("marks").value);
+      const trendDiv = document.getElementById("trend");
+      trendDiv.innerHTML = "";
+
+      if (isNaN(marks) || marks < 0 || marks > 200) {
+        trendDiv.innerHTML = "<p>Please enter valid marks between 0 and 200.</p>";
+        return;
+      }
+
+      trendDiv.innerHTML = "<h2>📊 GMRs near your marks (±2)</h2>";
+
+      for (let year of ["2024", "2023", "2022"]) {
+        const yearData = data[year];
+        const matches = Object.entries(yearData).filter(([m]) => Math.abs(parseFloat(m) - marks) <= 2)
+          .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+
+        if (matches.length > 0) {
+          trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3><ul>`;
+          matches.forEach(([m, r]) => {
+            trendDiv.innerHTML += `<li>Marks: ${m} → GMR: ${r}</li>`;
+          });
+          trendDiv.innerHTML += "</ul></div>";
+        } else {
+          trendDiv.innerHTML += `<div class="year-section"><h3>🔹 ${year}</h3><p>No data found within ±2 marks.</p></div>`;
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
