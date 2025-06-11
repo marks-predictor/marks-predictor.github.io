@@ -39,31 +39,42 @@
       const data = await res.json();
 
       const years = ['2022', '2023', '2024'];
-      const allPoints = years.flatMap(year => data[year]);
-      const nearbyMatches = allPoints.filter(p => Math.abs(p.marks - marks) <= 10);
+      const allMatches = [];
+      const yearlyMatches = {};
 
-      // AI-like Prediction
-      const gmrs = nearbyMatches.map(p => p.gmr);
+      // Smart search for each year: ±2 → ±5 → ±10
+      for (const year of years) {
+        let matches = data[year].filter(p => Math.abs(p.marks - marks) <= 2);
+        if (matches.length === 0) {
+          matches = data[year].filter(p => Math.abs(p.marks - marks) <= 5);
+        }
+        if (matches.length === 0) {
+          matches = data[year].filter(p => Math.abs(p.marks - marks) <= 10);
+        }
+        yearlyMatches[year] = matches;
+        allMatches.push(...matches);
+      }
+
+      // AI Estimate from all matches
+      const gmrs = allMatches.map(p => p.gmr);
       const aiMin = Math.min(...gmrs);
-      const aiMax = Math.max(...gmrs);
+      const aiMaxRaw = Math.max(...gmrs);
+      const aiMax = Math.ceil(aiMaxRaw / 100) * 100;
       const aiMedian = Math.round(median(gmrs));
 
       output.innerHTML += `<h2>🔮 AI Estimated GMR for 2025</h2>`;
       output.innerHTML += `
         <ul>
-          <li><strong>Estimated GMR:</strong> ${aiMin} – ${aiMax}</li>
-          <li><strong>AI Median Estimate:</strong> ~ ${aiMedian}</li>
-          <li>Based on real pattern from 2022–2024 (±10 marks)</li>
+          <li><strong>Predicted Rank:</strong> ${aiMin} – ${aiMax}</li>
+          <li><strong>Median Estimate:</strong> ~ ${aiMedian}</li>
+          <li>Based on best matches from 2022, 2023, and 2024 (±2→5→10)</li>
         </ul>`;
 
-      // Real Data for Each Year
-      output.innerHTML += `<h2>📊 Matching Data (±10 Marks) Per Year</h2>`;
+      // Show year-wise matches
+      output.innerHTML += `<h2>📊 Real Data Matches (Best Available Range per Year)</h2>`;
 
-      years.forEach(year => {
-        const matches = data[year]
-          .filter(p => Math.abs(p.marks - marks) <= 10)
-          .sort((a, b) => a.marks - b.marks);
-
+      for (const year of years) {
+        const matches = yearlyMatches[year];
         if (matches.length > 0) {
           const gmrMin = Math.min(...matches.map(m => m.gmr));
           const gmrMax = Math.max(...matches.map(m => m.gmr));
@@ -86,9 +97,9 @@
           });
           output.innerHTML += `</ul></div>`;
         } else {
-          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found within ±10 marks of ${marks}</p></div>`;
+          output.innerHTML += `<div class="year-block"><h3>🔹 ${year}</h3><p>No data found for marks near ${marks}</p></div>`;
         }
-      });
+      }
     }
   </script>
 </body>
