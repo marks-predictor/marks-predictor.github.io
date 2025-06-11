@@ -69,29 +69,28 @@
 
       // ✅ Show AI prediction for 2025
       output.innerHTML += `<h2>🔮 AI Estimated GMR for 2025</h2>`;
-      output.innerHTML += `<ul><strong>Estimated GMR:</strong> <strong>${estimatedMin} – ${estimatedMax}</strong>`;
-      output.innerHTML += `<li>Based on patterns from 2022, 2023, and 2024</li></ul>`;
+      output.innerHTML += `<ul><li><strong>Estimated GMR:</strong> <strong>${estimatedMin} – ${estimatedMax}</strong></li>`;
+      output.innerHTML += `<li>Based on trends from 2022, 2023, and 2024</li></ul>`;
 
-      // 📊 Show actual past years' marks for similar GMRs
-      output.innerHTML += `<h2>📊 Actual Marks for Similar Ranks (Past Years)</h2>`;
+      // 📊 Show actual past years' marks within ±2 marks
+      output.innerHTML += `<h2>📊 Real Data Matches (±2 Marks)</h2>`;
 
       for (const year of pastYears) {
-        const points = data[year].slice().sort((a, b) => a.gmr - b.gmr);
-        const match = points.find(p => p.gmr >= estimatedMin - 2 && p.gmr <= estimatedMax + 2);
+        const matches = data[year]
+          .filter(p => Math.abs(p.marks - marks) <= 2)
+          .sort((a, b) => a.marks - b.marks);
 
-        if (match) {
-          const diff = marks - match.marks;
-          let status = '';
-          if (diff > 2) {
-            status = `🟢 Higher than GMR ${match.gmr} in ${year} by ${diff.toFixed(2)} marks`;
-          } else if (diff < -2) {
-            status = `🔴 Lower than GMR ${match.gmr} in ${year} by ${Math.abs(diff).toFixed(2)} marks`;
-          } else {
-            status = `🟡 Almost equal to GMR ${match.gmr} in ${year}`;
-          }
-
-          output.innerHTML += `<h3>${year}</h3><ul>`;
-          output.innerHTML += `<li>GMR ${match.gmr} → ${match.marks} marks → ${status}</li></ul>`;
+        if (matches.length > 0) {
+          output.innerHTML += `<div class="year-block"><p><strong>🔹 ${year}</strong></p><ul>`;
+          matches.forEach(p => {
+            const diff = marks - p.marks;
+            const status =
+              diff > 2 ? `🟢 Higher than ${p.marks} marks (GMR ${p.gmr})`
+              : diff < -2 ? `🔴 Lower than ${p.marks} marks (GMR ${p.gmr})`
+              : `🟡 Very close to ${p.marks} marks (GMR ${p.gmr})`;
+            output.innerHTML += `<li>Marks: ${p.marks} → GMR: ${p.gmr}<br>${status}</li>`;
+          });
+          output.innerHTML += `</ul></div>`;
         }
       }
     }
